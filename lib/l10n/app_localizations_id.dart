@@ -791,4 +791,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get cropCycleUpdated => 'Sesi tanam telah diperbarui';
+
+  @override
+  String get harvesting => 'Mengakhiri sesi tanam...';
+
+  @override
+  String get harvested => 'Sesi tanam berhasil diakhiri.';
+
+  @override
+  String get harvestedOn => 'Diakhiri pada';
 }

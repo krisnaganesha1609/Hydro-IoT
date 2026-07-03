@@ -1,7 +1,9 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hydro_iot/core/config/config.dart';
 
 class AppStrings {
   static const String appName = 'ꫀHydrotel';
+  static const String appDescription = 'Smart Hydroponic Monitoring System';
   static const String errorMessage = 'An error has occurred. Please try again.';
   static const String loadingMessage = 'Loading, please wait...';
   static const String successMessage = 'Operation completed successfully!';
@@ -12,6 +14,7 @@ class AppStrings {
   static const String invalidInputMessage = 'Invalid input. Please check your data.';
   static const String timeoutMessage = 'Request timed out. Please try again.';
   static const String maintenanceMessage = 'The system is currently under maintenance. Please try again later.';
+  static String appVersion = dotenv.env['APP_VERSION'] ?? '1.0.0';
 }
 
 class EndpointStrings {

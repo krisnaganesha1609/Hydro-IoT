@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hydro_iot/core/app.dart';
 import 'package:hydro_iot/res/colors.dart';
 import 'package:hydro_iot/utils/local_notification_helper.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 final LocalNotificationHelper localNotificationHelper = LocalNotificationHelper();
 
@@ -43,5 +44,6 @@ Future<void> main() async {
   );
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: '.env');
+  await initializeDateFormatting();
   runApp(const ProviderScope(child: App()));
 }

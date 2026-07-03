@@ -302,5 +302,8 @@
   "addingCropCycleSession": "Menambahkan sesi tanam...",
   "cropCycleAdded": "Sesi tanam telah ditambahkan",
   "updatingCropCycleSession": "Memperbarui sesi tanam...",
-  "cropCycleUpdated": "Sesi tanam telah diperbarui"
+  "cropCycleUpdated": "Sesi tanam telah diperbarui",
+  "harvesting": "Mengakhiri sesi tanam...",
+  "harvested": "Sesi tanam berhasil diakhiri.",
+  "harvestedOn": "Diakhiri pada"
 }

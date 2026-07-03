@@ -784,4 +784,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cropCycleUpdated => 'Crop cycle session updated';
+
+  @override
+  String get harvesting => 'Ending crop cycle...';
+
+  @override
+  String get harvested => 'Crop cycle ended successfully.';
+
+  @override
+  String get harvestedOn => 'Harvested on';
 }

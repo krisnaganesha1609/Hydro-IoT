@@ -59,6 +59,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final action = ref.watch(cropCycleControllerProvider.notifier).action;
     ref.listen(userControllerProvider, (previous, next) {
       final wasLoggedIn = previous?.asData?.value != null;
       final isNowNull = next.asData?.value == null && !next.isLoading;
@@ -77,6 +78,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final local = AppLocalizations.of(context)!;
     final cropCycleState = ref.watch(cropCycleNotifierProvider);
     final userProvider = ref.watch(userControllerProvider);
+
+    ref.listen(cropCycleControllerProvider, (previous, next) {
+      next.whenOrNull(
+        error: (err, _) {
+          final errorMessage = (err as Exception).toString().replaceAll('Exception: ', '');
+          if (context.mounted) {
+            if (Navigator.canPop(context)) context.pop();
+            Toast().showErrorToast(context: context, title: local.error, description: errorMessage);
+          }
+        },
+        loading: () {
+          if (action == CropCycleAction.end) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => FancyLoadingDialog(title: local.harvesting),
+            );
+          }
+        },
+        data: (u) {
+          if (action == CropCycleAction.end && context.mounted) {
+            context.pop();
+            Toast().showSuccessToast(context: context, title: local.success, description: local.harvested);
+
+            ref.read(cropCycleNotifierProvider.notifier).fetchCropCycles(_status, _active);
+          }
+        },
+      );
+    });
 
     return Skeletonizer(
       enabled: cropCycleState.isLoading || userProvider.isLoading,

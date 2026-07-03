@@ -1549,6 +1549,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Crop cycle session updated'**
   String get cropCycleUpdated;
+
+  /// No description provided for @harvesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Ending crop cycle...'**
+  String get harvesting;
+
+  /// No description provided for @harvested.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop cycle ended successfully.'**
+  String get harvested;
+
+  /// No description provided for @harvestedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Harvested on'**
+  String get harvestedOn;
 }
 
 class _AppLocalizationsDelegate

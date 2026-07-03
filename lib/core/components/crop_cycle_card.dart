@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hydro_iot/core/components/blinking_dot.dart';
+import 'package:hydro_iot/core/components/pulsing_harvest_button_widget.dart' show PulsingHarvestButton;
 import 'package:hydro_iot/core/components/rolling_text.dart';
 import 'package:hydro_iot/src/websocket/application/controller/sensor_websocket_controller.dart';
 import 'package:hydro_iot/src/websocket/domain/entities/sensor_socket_entity.dart';
@@ -70,10 +71,7 @@ class CropCycleCard extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    cropCycleName,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-                  ),
+                  child: Text(cropCycleName, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
@@ -117,22 +115,10 @@ class CropCycleCard extends ConsumerWidget {
                         },
                         error: (error, stackTrace) {
                           log('Error fetching pH value: $error');
-                          return SensorCard(
-                            sensorType: 'pH',
-                            icon: IconAssets.ph,
-                            value: 'Error',
-                            rangeValue: phRangeValue,
-                            decimalCount: 2,
-                          );
+                          return SensorCard(sensorType: 'pH', icon: IconAssets.ph, value: 'Error', rangeValue: phRangeValue, decimalCount: 2);
                         },
                         loading: () {
-                          return SensorCard(
-                            sensorType: 'pH',
-                            icon: IconAssets.ph,
-                            value: 'Loading...',
-                            rangeValue: phRangeValue,
-                            decimalCount: 2,
-                          );
+                          return SensorCard(sensorType: 'pH', icon: IconAssets.ph, value: 'Loading...', rangeValue: phRangeValue, decimalCount: 2);
                         },
                       ),
                       const SizedBox(height: 6),
@@ -149,22 +135,10 @@ class CropCycleCard extends ConsumerWidget {
                         },
                         error: (error, stackTrace) {
                           log('Error fetching PPM value: $error');
-                          return SensorCard(
-                            sensorType: 'PPM',
-                            icon: IconAssets.ppm,
-                            value: 'Error',
-                            rangeValue: ppmRangeValue,
-                            decimalCount: 0,
-                          );
+                          return SensorCard(sensorType: 'PPM', icon: IconAssets.ppm, value: 'Error', rangeValue: ppmRangeValue, decimalCount: 0);
                         },
                         loading: () {
-                          return SensorCard(
-                            sensorType: 'PPM',
-                            icon: IconAssets.ppm,
-                            value: 'Loading...',
-                            rangeValue: ppmRangeValue,
-                            decimalCount: 0,
-                          );
+                          return SensorCard(sensorType: 'PPM', icon: IconAssets.ppm, value: 'Loading...', rangeValue: ppmRangeValue, decimalCount: 0);
                         },
                       ),
                     ],
@@ -238,7 +212,11 @@ class CropCycleCard extends ConsumerWidget {
                           const Spacer(),
                           Expanded(
                             flex: 10,
-                            child: harvestButton(context: context, onPressed: onHarvestPressed),
+                            child: PulsingHarvestButton(
+                              isReadyToHarvest: progressDay >= totalDay,
+                              tooltipMessage: 'Tanaman sudah mencapai $progressDay hari & siap dipanen! 🌱',
+                              child: harvestButton(context: context, onPressed: onHarvestPressed),
+                            ),
                           ),
                         ],
                       ),
@@ -286,10 +264,7 @@ class SensorCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    sensorType,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                  ),
+                  child: Text(sensorType, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 8),
                 Container(
@@ -317,10 +292,7 @@ class SensorCard extends StatelessWidget {
               decimalCount: decimalCount,
             ),
             const SizedBox(height: 4),
-            Text(
-              'Ideal: $rangeValue',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: ColorValues.neutral500),
-            ),
+            Text('Ideal: $rangeValue', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: ColorValues.neutral500)),
           ],
         ),
       ),
@@ -345,18 +317,14 @@ class PlantDayCounter extends StatelessWidget {
         children: [
           Text(
             local.day,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
           ),
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.bottomRight,
             child: Text(
               progressDay,
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
             ),
           ),
         ],
@@ -382,18 +350,14 @@ class WaterTemp extends StatelessWidget {
         children: [
           Text(
             local.waterTemp,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
           ),
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.bottomRight,
             child: Text(
               '$temp°C',
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
             ),
           ),
         ],
@@ -428,10 +392,7 @@ class DeviceStatusCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        local.device,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                      ),
+                      Text(local.device, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                       Text(
                         status,
@@ -556,15 +517,9 @@ class _DayProgressBorderState extends State<DayProgressBorder> with SingleTicker
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  '${local.day} ${widget.currentDay}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
+                Text('${local.day} ${widget.currentDay}', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(width: 6),
-                Text(
-                  '${local.oof} ${widget.totalDays}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: ColorValues.neutral500),
-                ),
+                Text('${local.oof} ${widget.totalDays}', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: ColorValues.neutral500)),
               ],
             ),
           ),

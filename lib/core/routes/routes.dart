@@ -31,6 +31,7 @@ import 'package:hydro_iot/src/profile/presentation/screens/change_password_verif
 import 'package:hydro_iot/src/profile/presentation/screens/profile_screen.dart';
 import 'package:hydro_iot/utils/utils.dart';
 
+import '../../src/auth/presentation/screens/splash_screen.dart';
 import '../../src/devices/presentation/screens/calibration/calibration_steps_screen.dart';
 import '../../utils/connectivity_wrapper.dart';
 
@@ -44,16 +45,42 @@ class GoRouterRefreshNotifier extends ChangeNotifier {
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: NavigationService.rootNavigatorKey,
-    initialLocation: '/${LandingScreen.path}',
+    initialLocation: '/${SplashScreen.path}',
     routes: [
+      GoRoute(
+        path: '/${SplashScreen.path}',
+        name: SplashScreen.path,
+        pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const SplashScreen()),
+      ),
       GoRoute(
         path: '/${LandingScreen.path}',
         name: LandingScreen.path,
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const ConnectivityWrapper(child: LandingScreen()),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
+
+          transitionDuration: const Duration(milliseconds: 720),
+          reverseTransitionDuration: const Duration(milliseconds: 350),
+          transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
+            final pageOpacity = Tween<double>(begin: 0.85, end: 1.0).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: const Interval(0.20, 1.0, curve: Curves.easeOut),
+              ),
+            );
+            final curtainSlide = Tween<Offset>(
+              begin: Offset.zero,
+              end: const Offset(0.0, -1.02),
+            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic));
+            return Stack(
+              children: [
+                FadeTransition(opacity: pageOpacity, child: child),
+                SlideTransition(
+                  position: curtainSlide,
+                  child: Container(color: Colors.white, width: double.infinity, height: double.infinity),
+                ),
+              ],
+            );
           },
         ),
       ),
@@ -440,8 +467,28 @@ final routerProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (context, state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const ConnectivityWrapper(child: DashboardScreen()),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    return FadeTransition(opacity: animation, child: child);
+                  transitionDuration: const Duration(milliseconds: 720),
+                  reverseTransitionDuration: const Duration(milliseconds: 350),
+                  transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
+                    final pageOpacity = Tween<double>(begin: 0.85, end: 1.0).animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: const Interval(0.20, 1.0, curve: Curves.easeOut),
+                      ),
+                    );
+                    final curtainSlide = Tween<Offset>(
+                      begin: Offset.zero,
+                      end: const Offset(0.0, -1.02),
+                    ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic));
+                    return Stack(
+                      children: [
+                        FadeTransition(opacity: pageOpacity, child: child),
+                        SlideTransition(
+                          position: curtainSlide,
+                          child: Container(color: Colors.white, width: double.infinity, height: double.infinity),
+                        ),
+                      ],
+                    );
                   },
                 ),
                 routes: [
@@ -572,6 +619,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     errorBuilder: (context, state) => ErrorScreen(errorMessage: state.error!.message),
     refreshListenable: GoRouterRefreshNotifier(ref),
     redirect: (context, state) async {
+      if (state.matchedLocation == '/${SplashScreen.path}') {
+        return null;
+      }
       final isLoggedIn = await Storage().readIsLoggedIn;
       final role = await Storage().readRole();
       debugPrint('isLoggedIn: $isLoggedIn, role: $role, path: ${state.matchedLocation}');

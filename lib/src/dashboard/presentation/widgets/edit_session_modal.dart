@@ -102,28 +102,36 @@ class _EditSessionModalState extends ConsumerState<EditSessionModal> {
   @override
   Widget build(BuildContext context) {
     final local = AppLocalizations.of(context)!;
+    final action = ref.watch(cropCycleControllerProvider.notifier).action;
     ref.listen<AsyncValue<void>>(cropCycleControllerProvider, (previous, next) {
       next.whenOrNull(
-        loading: () => showDialog(
-          context: context,
-          builder: (context) => FancyLoadingDialog(title: local.updatingCropCycleSession),
-        ),
+        loading: () {
+          if (action == CropCycleAction.update) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => FancyLoadingDialog(title: local.updatingCropCycleSession),
+            );
+          }
+        },
         error: (error, stackTrace) {
           context.pop();
-          Toast().showErrorToast(context: context, title: 'Error', description: error.toString());
+          Toast().showErrorToast(context: context, title: 'Error', description: error.toString().replaceAll('Exception: ', ''));
         },
         data: (_) {
-          context.pop();
-          Toast().showSuccessToast(context: context, title: local.success, description: local.cropCycleUpdated);
-          EditSessionData sessionData = EditSessionData(
-            name: _nameController.text,
-            phMin: _phRange.start,
-            phMax: _phRange.end,
-            ppmMin: _ppmRange.start,
-            ppmMax: _ppmRange.end,
-          );
-          widget.onSessionEdited(sessionData);
-          context.pop();
+          if (action == CropCycleAction.update) {
+            context.pop();
+            Toast().showSuccessToast(context: context, title: local.success, description: local.cropCycleUpdated);
+            EditSessionData sessionData = EditSessionData(
+              name: _nameController.text,
+              phMin: _phRange.start,
+              phMax: _phRange.end,
+              ppmMin: _ppmRange.start,
+              ppmMax: _ppmRange.end,
+            );
+            widget.onSessionEdited(sessionData);
+            context.pop();
+          }
         },
       );
     });

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hydro_iot/core/components/blinking_dot.dart';
 import 'package:hydro_iot/utils/border_progress_paint.dart';
 import 'package:intl/intl.dart';
@@ -6,7 +7,7 @@ import 'package:vector_graphics/vector_graphics.dart';
 import '../../../../../pkg.dart';
 
 // ignore: must_be_immutable
-class HistoryCropCycleCard extends StatelessWidget {
+class HistoryCropCycleCard extends ConsumerWidget {
   HistoryCropCycleCard({
     super.key,
     required this.cropCycleName,
@@ -40,9 +41,11 @@ class HistoryCropCycleCard extends StatelessWidget {
   bool isViewDayProgress = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final local = AppLocalizations.of(context)!;
-    final String plantedAtFormatted = DateFormat.yMMMd().format(plantedAt);
+    final locale = ref.watch(localeProvider);
+    final String plantedAtFormatted = DateFormat.yMMMd(locale.languageCode).format(plantedAt);
+    final String harvestedAtFormatted = DateFormat('dd MMM yyyy', locale.languageCode).format(harvestedAt);
 
     return Container(
       decoration: BoxDecoration(
@@ -59,10 +62,7 @@ class HistoryCropCycleCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    cropCycleName,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-                  ),
+                  child: Text(cropCycleName, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
@@ -150,18 +150,12 @@ class HistoryCropCycleCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Container(
-                              decoration: BoxDecoration(
-                                color: ColorValues.neutral100,
-                                borderRadius: BorderRadius.circular(31),
-                              ),
+                              decoration: BoxDecoration(color: ColorValues.neutral100, borderRadius: BorderRadius.circular(31)),
                               padding: EdgeInsets.symmetric(vertical: 5.h),
                               child: Column(
                                 children: [
-                                  Text('Harvested on', style: Theme.of(context).textTheme.bodySmall),
-                                  Text(
-                                    DateFormat('dd MMM yyyy').format(harvestedAt),
-                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-                                  ),
+                                  Text(local.harvestedOn, style: Theme.of(context).textTheme.bodySmall),
+                                  Text(harvestedAtFormatted, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600)),
                                 ],
                               ),
                             ),
@@ -204,10 +198,7 @@ class SensorCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    sensorType,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                  ),
+                  child: Text(sensorType, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 8),
                 Container(
@@ -230,10 +221,7 @@ class SensorCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text(
-              'Ideal: $rangeValue',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: ColorValues.neutral500),
-            ),
+            Text('Ideal: $rangeValue', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: ColorValues.neutral500)),
           ],
         ),
       ),
@@ -258,18 +246,14 @@ class PlantDayCounter extends StatelessWidget {
         children: [
           Text(
             local.day,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
           ),
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.bottomRight,
             child: Text(
               progressDay,
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
             ),
           ),
         ],
@@ -293,18 +277,14 @@ class WaterTemp extends StatelessWidget {
         children: [
           Text(
             local.waterTemp,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500, color: ColorValues.green900),
           ),
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.bottomRight,
             child: Text(
               '-',
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: ColorValues.green900),
             ),
           ),
         ],
@@ -338,10 +318,7 @@ class DeviceStatusCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        local.device,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                      ),
+                      Text(local.device, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                       Text(
                         status,
@@ -466,15 +443,9 @@ class _DayProgressBorderState extends State<DayProgressBorder> with SingleTicker
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  '${local.day} ${widget.currentDay}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
+                Text('${local.day} ${widget.currentDay}', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(width: 6),
-                Text(
-                  '${local.oof} ${widget.totalDays}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: ColorValues.neutral500),
-                ),
+                Text('${local.oof} ${widget.totalDays}', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: ColorValues.neutral500)),
               ],
             ),
           ),

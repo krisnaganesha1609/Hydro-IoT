@@ -301,5 +301,8 @@
   "addingCropCycleSession": "Adding New Crop Cycle Session...",
   "cropCycleAdded": "Crop Cycle Session Added",
   "updatingCropCycleSession": "Updating crop cycle session...",
-  "cropCycleUpdated": "Crop cycle session updated"
+  "cropCycleUpdated": "Crop cycle session updated",
+  "harvesting": "Ending crop cycle...",
+  "harvested": "Crop cycle ended successfully.",
+  "harvestedOn": "Harvested on"
 }

@@ -5,13 +5,17 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'crop_cycle_controller.g.dart';
 
+enum CropCycleAction { add, update, end, delete, none }
+
 @riverpod
 class CropCycleController extends _$CropCycleController {
+  CropCycleAction action = CropCycleAction.none;
   @override
   FutureOr<void> build() async {}
 
   Future<void> addCropCycleSession(SessionData sessionData) async {
     if (!ref.mounted) return;
+    action = CropCycleAction.add;
     state = const AsyncValue.loading();
 
     final result = await AsyncValue.guard(() async {
@@ -20,28 +24,30 @@ class CropCycleController extends _$CropCycleController {
 
     if (!ref.mounted) return;
     state = result;
+    action = CropCycleAction.none;
   }
 
-  Future<void> updateCropCycleSession(
-    String id,
-    EditSessionData sessionData,
-  ) async {
+  Future<void> updateCropCycleSession(String id, EditSessionData sessionData) async {
+    action = CropCycleAction.update;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref
-          .read(cropCycleRepositoryProvider)
-          .updateCropCycle(id, sessionData);
+      await ref.read(cropCycleRepositoryProvider).updateCropCycle(id, sessionData);
     });
+    action = CropCycleAction.none;
   }
 
   Future<void> deleteCropCycleSession(String id) async {
+    action = CropCycleAction.delete;
+    if (!ref.mounted) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       await ref.read(cropCycleRepositoryProvider).deleteCropCycle(id);
     });
+    action = CropCycleAction.none;
   }
 
   Future<void> endCropCycleSession(String id) async {
+    action = CropCycleAction.end;
     if (!ref.mounted) return;
     state = const AsyncValue.loading();
 
@@ -51,5 +57,6 @@ class CropCycleController extends _$CropCycleController {
 
     if (!ref.mounted) return;
     state = result;
+    action = CropCycleAction.none;
   }
 }
