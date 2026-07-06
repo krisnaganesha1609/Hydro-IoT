@@ -116,67 +116,73 @@ class _CalibrationStepsScreenState extends ConsumerState<CalibrationStepsScreen>
         final appliedStep = prev?.currentStepDef;
         final upcomingStep = next.currentStepDef;
         if (appliedStep == null || upcomingStep == null) return;
-
-        final appliedType = _typeOf(appliedStep);
         ApplyCalibrationSheet.show(
           context,
-          type: appliedType,
           nextStepLabel: _shortLabel(upcomingStep),
           isLast: next.isLastStep,
-          image: appliedType == 'pH' ? ImageAssets.applypHCalibration : ImageAssets.applyPPMCalibration,
+          image: next.isLastStep ? ImageAssets.applyPPMCalibration : ImageAssets.applypHCalibration,
           onContinue: () {
             Navigator.of(context).pop();
             _controller.confirmAppliedAndContinue(widget.serial);
+
+            if (next.isLastStep) {
+              // Kalau sudah selesai semua step, langsung kembali ke DevicesScreen
+              context.go('/${DevicesScreen.path}');
+              ref.invalidate(devicesControllerProvider);
+            }
           },
         );
       }
     });
 
-    return Scaffold(
-      backgroundColor: ColorValues.neutral50,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Container(
-          decoration: BoxDecoration(
-            color: ColorValues.whiteColor,
-            shape: BoxShape.circle,
-            border: Border.all(color: ColorValues.neutral200),
-          ),
-          margin: EdgeInsets.only(left: 16.w),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: ColorValues.blackColor),
-            // Jangan biarkan keluar tanpa konfirmasi saat soak berjalan
-            onPressed: state.phase == CalibrationPhase.soaking
-                ? () {
-                    context.pop();
-                    context.pushReplacement('/${DevicesScreen.path}');
-                    ref.invalidate(devicesControllerProvider);
-                  }
-                : () => context.pop(),
-          ),
-        ),
-        title: Text(local.deviceCalibration, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        actions: [
-          if (state.phase != CalibrationPhase.done && state.phase != CalibrationPhase.loading && state.phase != CalibrationPhase.cancelled)
-            Padding(
-              padding: EdgeInsets.only(right: 16.w),
-              child: TextButton(
-                onPressed: () => _onCancelPressed(local),
-                child: Text(local.cancel, style: const TextStyle(color: ColorValues.danger600)),
-              ),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: ColorValues.neutral50,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Container(
+            decoration: BoxDecoration(
+              color: ColorValues.whiteColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: ColorValues.neutral200),
             ),
-        ],
-      ),
-      body: switch (state.phase) {
-        CalibrationPhase.loading => const Center(child: FancyLoading(title: 'Initializing calibration...')),
-        CalibrationPhase.error => _buildErrorView(state, local),
-        CalibrationPhase.cancelled => _buildCancelledView(local),
+            margin: EdgeInsets.only(left: 16.w),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: ColorValues.blackColor),
+              // Jangan biarkan keluar tanpa konfirmasi saat soak berjalan
+              onPressed: state.phase == CalibrationPhase.soaking
+                  ? () {
+                      context.pop();
+                      context.go('/${DevicesScreen.path}');
+                      ref.invalidate(devicesControllerProvider);
+                    }
+                  : () => context.pop(),
+            ),
+          ),
+          title: Text(local.deviceCalibration, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          centerTitle: true,
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
+          actions: [
+            if (state.phase != CalibrationPhase.done && state.phase != CalibrationPhase.loading && state.phase != CalibrationPhase.cancelled)
+              Padding(
+                padding: EdgeInsets.only(right: 16.w),
+                child: TextButton(
+                  onPressed: () => _onCancelPressed(local),
+                  child: Text(local.cancel, style: const TextStyle(color: ColorValues.danger600)),
+                ),
+              ),
+          ],
+        ),
+        body: switch (state.phase) {
+          CalibrationPhase.loading => Center(child: FancyLoading(title: local.initializingCalibration)),
+          CalibrationPhase.error => _buildErrorView(state, local),
+          CalibrationPhase.cancelled => _buildCancelledView(local),
 
-        _ => _buildStepView(state, local),
-      },
+          _ => _buildStepView(state, local),
+        },
+      ),
     );
   }
 
@@ -546,24 +552,15 @@ class _CalibrationStepsScreenState extends ConsumerState<CalibrationStepsScreen>
 // ─── Bottom Sheet: Apply Calibration (dipanggil dari controller saat applyStep sukses) ──
 
 class ApplyCalibrationSheet extends StatelessWidget {
-  final String type;
   final String nextStepLabel;
   final VoidCallback onContinue;
   final String image;
   final bool isLast;
 
-  const ApplyCalibrationSheet({
-    super.key,
-    required this.type,
-    required this.nextStepLabel,
-    required this.onContinue,
-    required this.image,
-    required this.isLast,
-  });
+  const ApplyCalibrationSheet({super.key, required this.nextStepLabel, required this.onContinue, required this.image, required this.isLast});
 
   static void show(
     BuildContext context, {
-    required String type,
     required String nextStepLabel,
     required String image,
     required VoidCallback onContinue,
@@ -577,7 +574,7 @@ class ApplyCalibrationSheet extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: ColorValues.whiteColor,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (ctx) => ApplyCalibrationSheet(type: type, nextStepLabel: nextStepLabel, image: image, onContinue: onContinue, isLast: isLast),
+      builder: (ctx) => ApplyCalibrationSheet(nextStepLabel: nextStepLabel, image: image, onContinue: onContinue, isLast: isLast),
     );
   }
 
@@ -590,29 +587,11 @@ class ApplyCalibrationSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SizedBox(width: 50),
-              Text(
-                local.calibrationAppliedTitle(type),
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: ColorValues.blackColor),
-              ),
-              // Tidak ada tombol close fungsional — bottom sheet ini wajib dilanjutkan,
-              // bukan di-dismiss, karena sudah commit ke backend.
-              Container(
-                width: 40,
-                height: 40,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: ColorValues.whiteColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: ColorValues.neutral200),
-                ),
-                child: const VectorGraphic(loader: AssetBytesLoader(IconAssets.close), width: 18, height: 18),
-              ),
-            ],
+          const SizedBox(width: 50),
+          Text(
+            local.calibrationAppliedTitle(isLast ? 'PPM' : 'pH'),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: ColorValues.blackColor),
           ),
           const SizedBox(height: 20),
           ClipRRect(
