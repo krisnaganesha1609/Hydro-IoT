@@ -217,9 +217,7 @@ class _SearchCropCycleScreenState extends ConsumerState<SearchCropCycleScreen> {
                 sessionName: cropCycle.name,
                 phRange: RangeValues(cropCycle.phMin, cropCycle.phMax),
                 ppmRange: RangeValues(cropCycle.ppmMin.toDouble(), cropCycle.ppmMax.toDouble()),
-                onSessionEdited: (_) {
-                  ref.read(cropCycleNotifierProvider.notifier).fetchCropCycles('ongoing', true);
-                },
+                expectedEnd: cropCycle.expectedEnd != null ? cropCycle.expectedEnd!.difference(cropCycle.startedAt).inDays : 30,
               ),
             );
           },

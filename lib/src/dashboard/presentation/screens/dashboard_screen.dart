@@ -15,6 +15,7 @@ import 'package:hydro_iot/core/components/animated_refresh_button_widget.dart';
 import 'package:hydro_iot/utils/utils.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
+import '../../../devices/application/controllers/devices_controller.dart';
 import '../../application/providers/crop_cycle_providers.dart';
 import '../../application/state/crop_cycle_state.dart';
 
@@ -59,7 +60,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final action = ref.watch(cropCycleControllerProvider.notifier).action;
     ref.listen(userControllerProvider, (previous, next) {
       final wasLoggedIn = previous?.asData?.value != null;
       final isNowNull = next.asData?.value == null && !next.isLoading;
@@ -80,29 +80,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final userProvider = ref.watch(userControllerProvider);
 
     ref.listen(cropCycleControllerProvider, (previous, next) {
+      final action = ref.watch(cropCycleControllerProvider.notifier).action;
       next.whenOrNull(
         error: (err, _) {
+          context.pop();
           final errorMessage = (err as Exception).toString().replaceAll('Exception: ', '');
           if (context.mounted) {
-            if (Navigator.canPop(context)) context.pop();
+            context.pop();
             Toast().showErrorToast(context: context, title: local.error, description: errorMessage);
           }
         },
         loading: () {
-          if (action == CropCycleAction.end) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => FancyLoadingDialog(title: local.harvesting),
-            );
-          }
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => FancyLoadingDialog(
+              title: action == CropCycleAction.add
+                  ? local.addingCropCycleSession
+                  : action == CropCycleAction.update
+                  ? local.updatingCropCycleSession
+                  : action == CropCycleAction.end
+                  ? local.harvested
+                  : local.loadingCropCycles,
+            ),
+          );
         },
         data: (u) {
-          if (action == CropCycleAction.end && context.mounted) {
+          if (action != CropCycleAction.none && context.mounted) {
             context.pop();
-            Toast().showSuccessToast(context: context, title: local.success, description: local.harvested);
+            if (action == CropCycleAction.add || action == CropCycleAction.update) {
+              if (context.mounted) context.pop();
+            }
+            Toast().showSuccessToast(
+              context: context,
+              title: local.success,
+              description: action == CropCycleAction.add
+                  ? local.cropCycleAdded
+                  : action == CropCycleAction.update
+                  ? local.cropCycleUpdated
+                  : action == CropCycleAction.end
+                  ? local.harvested
+                  : local.loadingCropCycles,
+            );
 
             ref.read(cropCycleNotifierProvider.notifier).fetchCropCycles(_status, _active);
+
+            ref.read(devicesControllerProvider.notifier).fetchDevices();
           }
         },
       );
@@ -163,11 +186,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               isScrollControlled: true,
                               useSafeArea: true,
                               context: context,
-                              builder: (context) => SessionModal(
-                                onSessionAdded: (_) {
-                                  ref.read(cropCycleNotifierProvider.notifier).fetchCropCycles(_status, _active);
-                                },
-                              ),
+                              builder: (context) => const SessionModal(),
                             );
                           },
                         ),
@@ -236,9 +255,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     sessionName: cropCycle.name,
                     phRange: RangeValues(cropCycle.phMin, cropCycle.phMax),
                     ppmRange: RangeValues(cropCycle.ppmMin.toDouble(), cropCycle.ppmMax.toDouble()),
-                    onSessionEdited: (_) {
-                      ref.read(cropCycleNotifierProvider.notifier).fetchCropCycles(_status, _active);
-                    },
+                    expectedEnd: cropCycle.expectedEnd != null ? cropCycle.expectedEnd!.difference(cropCycle.startedAt).inDays : 30,
                   ),
                 );
               },

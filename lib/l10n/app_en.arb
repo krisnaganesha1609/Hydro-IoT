@@ -304,5 +304,11 @@
   "cropCycleUpdated": "Crop cycle session updated",
   "harvesting": "Ending crop cycle...",
   "harvested": "Crop cycle ended successfully.",
-  "harvestedOn": "Harvested on"
+  "harvestedOn": "Harvested on",
+  "expectedHarvestDuration": "Expected harvest duration",
+  "days": "Days",
+  "pleaseSelectDevice": "Please select a device",
+  "deviceHasActiveSession": "Device has active session!",
+  "deviceIsOffline": "Device is offline!",
+  "initializingCalibration": "Initializing calibration..."
 }

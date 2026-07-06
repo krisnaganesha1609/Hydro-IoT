@@ -305,5 +305,11 @@
   "cropCycleUpdated": "Sesi tanam telah diperbarui",
   "harvesting": "Mengakhiri sesi tanam...",
   "harvested": "Sesi tanam berhasil diakhiri.",
-  "harvestedOn": "Diakhiri pada"
+  "harvestedOn": "Diakhiri pada",
+  "expectedHarvestDuration": "Perkiraan durasi panen",
+  "days": "Hari",
+  "pleaseSelectDevice": "Mohon pilih perangkat",
+  "deviceHasActiveSession": "Perangkat sudah ada sesi yang berjalan!",
+  "deviceIsOffline": "Perangkat sedang offline!",
+  "initializingCalibration": "Inisialisasi kalibrasi..."
 }

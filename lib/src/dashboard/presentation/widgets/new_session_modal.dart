@@ -12,9 +12,7 @@ import 'package:multi_dropdown/multi_dropdown.dart';
 import 'package:vector_graphics/vector_graphics.dart';
 
 class SessionModal extends ConsumerStatefulWidget {
-  final Function(SessionData) onSessionAdded;
-
-  const SessionModal({super.key, required this.onSessionAdded});
+  const SessionModal({super.key});
 
   @override
   ConsumerState<SessionModal> createState() => _SessionModalState();
@@ -22,6 +20,7 @@ class SessionModal extends ConsumerStatefulWidget {
 
 class _SessionModalState extends ConsumerState<SessionModal> {
   late TextEditingController _nameController;
+  late TextEditingController _expectedEndController;
 
   late RangeValues _phRange;
   late RangeValues _ppmRange;
@@ -37,6 +36,8 @@ class _SessionModalState extends ConsumerState<SessionModal> {
 
   AsyncValue<List<PlantEntity>> get plantTypes => ref.watch(plantControllerProvider);
   AsyncValue<List<DeviceEntity>> get devices => ref.watch(devicesControllerProvider);
+
+  int expectedEnd = 30;
 
   bool isEntriesValid() {
     return _nameController.text.isNotEmpty && devicesController.selectedItems.isNotEmpty && plantsController.selectedItems.isNotEmpty;
@@ -68,7 +69,7 @@ class _SessionModalState extends ConsumerState<SessionModal> {
       phMax: maxPH,
       ppmMin: minPPM,
       ppmMax: maxPPM,
-      expectedEnd: 30,
+      expectedEnd: expectedEnd,
     );
 
     ref.read(cropCycleControllerProvider.notifier).addCropCycleSession(newSession);
@@ -78,6 +79,7 @@ class _SessionModalState extends ConsumerState<SessionModal> {
   void initState() {
     super.initState();
     _nameController = TextEditingController();
+    _expectedEndController = TextEditingController(text: '30');
     _phRange = const RangeValues(0, 0);
     _ppmRange = const RangeValues(0, 0);
     phMinController = TextEditingController(text: _phRange.start.toStringAsFixed(1));
@@ -92,6 +94,7 @@ class _SessionModalState extends ConsumerState<SessionModal> {
   @override
   void dispose() {
     _nameController.dispose();
+    _expectedEndController.dispose();
     plantsController.dispose();
     devicesController.dispose();
     phMinController.dispose();
@@ -111,42 +114,7 @@ class _SessionModalState extends ConsumerState<SessionModal> {
   @override
   Widget build(BuildContext context) {
     final local = AppLocalizations.of(context)!;
-    final action = ref.watch(cropCycleControllerProvider.notifier).action;
-    ref.listen<AsyncValue<void>>(cropCycleControllerProvider, (previous, next) {
-      next.whenOrNull(
-        loading: () {
-          if (action == CropCycleAction.add) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => FancyLoadingDialog(title: local.addingCropCycleSession),
-            );
-          }
-        },
-        error: (error, stackTrace) {
-          context.pop();
-          Toast().showErrorToast(context: context, title: 'Error', description: error.toString().replaceAll('Exception: ', ''));
-        },
-        data: (_) {
-          if (action == CropCycleAction.add) {
-            context.pop();
-            Toast().showSuccessToast(context: context, title: local.success, description: local.cropCycleAdded);
-            SessionData sessionData = SessionData(
-              deviceId: devicesController.selectedItems.first.value.id,
-              plantId: plantsController.selectedItems.first.value.id,
-              name: _nameController.text,
-              phMin: _phRange.start,
-              phMax: _phRange.end,
-              ppmMin: _ppmRange.start,
-              ppmMax: _ppmRange.end,
-              expectedEnd: plantsController.selectedItems.first.value.expectedDurationDays ?? 30,
-            );
-            widget.onSessionAdded(sessionData);
-            context.pop();
-          }
-        },
-      );
-    });
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -232,11 +200,11 @@ class _SessionModalState extends ConsumerState<SessionModal> {
                                         showClearIcon: false,
                                         border: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(40),
-                                          borderSide: const BorderSide(color: ColorValues.neutral400),
+                                          borderSide: const BorderSide(color: ColorValues.neutral500),
                                         ),
                                         focusedBorder: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(40),
-                                          borderSide: const BorderSide(color: ColorValues.neutral400),
+                                          borderSide: const BorderSide(color: ColorValues.neutral500),
                                         ),
                                         suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                                       ),
@@ -252,6 +220,19 @@ class _SessionModalState extends ConsumerState<SessionModal> {
                                         selectedTextColor: ColorValues.blackColor,
                                         selectedBackgroundColor: ColorValues.green100,
                                       ),
+                                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                                      validator: (item) {
+                                        if (item == null || item.isEmpty) {
+                                          return local.pleaseSelectDevice;
+                                        }
+                                        if (item.first.value.status == 'ACTIVE') {
+                                          return local.deviceHasActiveSession;
+                                        }
+                                        if (item.first.value.status == 'OFFLINE') {
+                                          return local.deviceIsOffline;
+                                        }
+                                        return null;
+                                      },
                                     );
                                   },
                                   error: (error, stackTrace) {
@@ -296,9 +277,12 @@ class _SessionModalState extends ConsumerState<SessionModal> {
                                             ppmMinController.text = _ppmRange.start.round().toString();
 
                                             ppmMaxController.text = _ppmRange.end.round().toString();
+                                            _expectedEndController.text = selectedPlant.expectedDurationDays?.toString() ?? '30';
+                                            expectedEnd = selectedPlant.expectedDurationDays ?? 30;
                                           } else {
                                             _phRange = const RangeValues(0, 0);
                                             _ppmRange = const RangeValues(500, 2500);
+                                            _expectedEndController.text = '30';
                                           }
                                         });
                                       },
@@ -308,11 +292,11 @@ class _SessionModalState extends ConsumerState<SessionModal> {
                                         showClearIcon: false,
                                         border: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(40),
-                                          borderSide: const BorderSide(color: ColorValues.neutral400),
+                                          borderSide: const BorderSide(color: ColorValues.neutral500),
                                         ),
                                         focusedBorder: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(40),
-                                          borderSide: const BorderSide(color: ColorValues.neutral400),
+                                          borderSide: const BorderSide(color: ColorValues.neutral500),
                                         ),
                                         suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                                       ),
@@ -337,13 +321,36 @@ class _SessionModalState extends ConsumerState<SessionModal> {
                                     return const SizedBox.shrink();
                                   },
                                 ),
+                                if (devicesController.selectedItems.isNotEmpty && plantsController.selectedItems.isNotEmpty) ...[
+                                  const SizedBox(height: 16),
+                                  TextFormFieldComponent(
+                                    label: local.expectedHarvestDuration,
+                                    controller: _expectedEndController,
+                                    hintText: 'e.g. 30',
+                                    obscureText: false,
+                                    keyboardType: TextInputType.number, // Harus angka
+                                    suffixIcon: Padding(
+                                      padding: EdgeInsets.only(right: 14.w),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            local.days,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall?.copyWith(color: ColorValues.neutral500, fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
                         ),
 
                         const SizedBox(height: 16),
-
                         if (devicesController.selectedItems.isNotEmpty && plantsController.selectedItems.isNotEmpty) ...[
                           Card(
                             shape: RoundedRectangleBorder(

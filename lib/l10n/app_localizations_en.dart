@@ -793,4 +793,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get harvestedOn => 'Harvested on';
+
+  @override
+  String get expectedHarvestDuration => 'Expected harvest duration';
+
+  @override
+  String get days => 'Days';
+
+  @override
+  String get pleaseSelectDevice => 'Please select a device';
+
+  @override
+  String get deviceHasActiveSession => 'Device has active session!';
+
+  @override
+  String get deviceIsOffline => 'Device is offline!';
+
+  @override
+  String get initializingCalibration => 'Initializing calibration...';
 }

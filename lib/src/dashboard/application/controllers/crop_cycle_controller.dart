@@ -14,17 +14,12 @@ class CropCycleController extends _$CropCycleController {
   FutureOr<void> build() async {}
 
   Future<void> addCropCycleSession(SessionData sessionData) async {
-    if (!ref.mounted) return;
     action = CropCycleAction.add;
     state = const AsyncValue.loading();
-
     final result = await AsyncValue.guard(() async {
       await ref.read(cropCycleRepositoryProvider).addCropCycle(sessionData);
     });
-
-    if (!ref.mounted) return;
     state = result;
-    action = CropCycleAction.none;
   }
 
   Future<void> updateCropCycleSession(String id, EditSessionData sessionData) async {
@@ -33,30 +28,22 @@ class CropCycleController extends _$CropCycleController {
     state = await AsyncValue.guard(() async {
       await ref.read(cropCycleRepositoryProvider).updateCropCycle(id, sessionData);
     });
-    action = CropCycleAction.none;
   }
 
   Future<void> deleteCropCycleSession(String id) async {
     action = CropCycleAction.delete;
-    if (!ref.mounted) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       await ref.read(cropCycleRepositoryProvider).deleteCropCycle(id);
     });
-    action = CropCycleAction.none;
   }
 
   Future<void> endCropCycleSession(String id) async {
     action = CropCycleAction.end;
-    if (!ref.mounted) return;
     state = const AsyncValue.loading();
-
     final result = await AsyncValue.guard(() async {
       await ref.read(cropCycleRepositoryProvider).endCropCycle(id);
     });
-
-    if (!ref.mounted) return;
     state = result;
-    action = CropCycleAction.none;
   }
 }

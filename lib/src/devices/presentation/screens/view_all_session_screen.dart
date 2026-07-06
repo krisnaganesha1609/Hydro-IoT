@@ -6,7 +6,6 @@ import 'package:hydro_iot/l10n/app_localizations.dart';
 import 'package:hydro_iot/res/res.dart';
 import 'package:hydro_iot/src/dashboard/application/controllers/crop_cycle_controller.dart';
 import 'package:hydro_iot/src/dashboard/application/controllers/crop_cycle_for_devices_controller.dart';
-import 'package:hydro_iot/src/dashboard/application/providers/crop_cycle_providers.dart';
 import 'package:hydro_iot/src/dashboard/domain/entities/crop_cycle_entity.dart';
 import 'package:hydro_iot/src/dashboard/presentation/widgets/edit_session_modal.dart';
 import 'package:hydro_iot/src/dashboard/presentation/widgets/new_session_modal.dart';
@@ -51,7 +50,7 @@ class _ViewAllPlantSessionScreenState extends ConsumerState<ViewAllPlantSessionS
                   context: context,
                   builder: (context) => Padding(
                     padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-                    child: SessionModal(onSessionAdded: (p0) {}),
+                    child: const SessionModal(),
                   ),
                 );
               },
@@ -68,9 +67,7 @@ class _ViewAllPlantSessionScreenState extends ConsumerState<ViewAllPlantSessionS
         const SizedBox(height: 4),
         Text(
           'on ${widget.deviceName}',
-          style: dmSansHeadText(
-            color: Theme.brightnessOf(context) == Brightness.dark ? ColorValues.neutral100 : ColorValues.neutral600,
-          ),
+          style: dmSansHeadText(color: Theme.brightnessOf(context) == Brightness.dark ? ColorValues.neutral100 : ColorValues.neutral600),
         ),
         // Add your device list or other widgets here
         const SizedBox(height: 10),
@@ -81,10 +78,7 @@ class _ViewAllPlantSessionScreenState extends ConsumerState<ViewAllPlantSessionS
             children: [
               Center(child: Text('${local.error}: $error')),
               const SizedBox(height: 10),
-              AnimatedRefreshButton(
-                onRefresh: () => ref.refresh(cropCycleForDevicesControllerProvider(widget.deviceId).future),
-                loading: false,
-              ),
+              AnimatedRefreshButton(onRefresh: () => ref.refresh(cropCycleForDevicesControllerProvider(widget.deviceId).future), loading: false),
             ],
           ),
         ),
@@ -115,9 +109,7 @@ class _ViewAllPlantSessionScreenState extends ConsumerState<ViewAllPlantSessionS
                     sessionName: cropCycle.name,
                     phRange: RangeValues(cropCycle.phMin, cropCycle.phMax),
                     ppmRange: RangeValues(cropCycle.ppmMin.toDouble(), cropCycle.ppmMax.toDouble()),
-                    onSessionEdited: (sessionData) {
-                      ref.read(cropCycleNotifierProvider.notifier).fetchCropCycles('ongoing', true);
-                    },
+                    expectedEnd: cropCycle.expectedEnd != null ? cropCycle.expectedEnd!.difference(cropCycle.startedAt).inDays : 30,
                   ),
                 );
               },

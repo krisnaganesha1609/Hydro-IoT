@@ -1567,6 +1567,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Harvested on'**
   String get harvestedOn;
+
+  /// No description provided for @expectedHarvestDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected harvest duration'**
+  String get expectedHarvestDuration;
+
+  /// No description provided for @days.
+  ///
+  /// In en, this message translates to:
+  /// **'Days'**
+  String get days;
+
+  /// No description provided for @pleaseSelectDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a device'**
+  String get pleaseSelectDevice;
+
+  /// No description provided for @deviceHasActiveSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Device has active session!'**
+  String get deviceHasActiveSession;
+
+  /// No description provided for @deviceIsOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Device is offline!'**
+  String get deviceIsOffline;
+
+  /// No description provided for @initializingCalibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing calibration...'**
+  String get initializingCalibration;
 }
 
 class _AppLocalizationsDelegate

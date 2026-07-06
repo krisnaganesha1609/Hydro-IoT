@@ -13,17 +13,17 @@ class EditSessionModal extends ConsumerStatefulWidget {
   final String sessionName;
   final RangeValues phRange;
   final RangeValues ppmRange;
-  final Function onSessionEdited;
+  final int expectedEnd;
 
   const EditSessionModal({
     super.key,
     required this.cropCycleId,
-    required this.onSessionEdited,
     required this.device,
     required this.plant,
     required this.sessionName,
     required this.phRange,
     required this.ppmRange,
+    required this.expectedEnd,
   });
 
   @override
@@ -32,6 +32,7 @@ class EditSessionModal extends ConsumerStatefulWidget {
 
 class _EditSessionModalState extends ConsumerState<EditSessionModal> {
   late TextEditingController _nameController;
+  late TextEditingController _expectedEndController;
   late TextEditingController plants;
   late TextEditingController devices;
 
@@ -70,6 +71,7 @@ class _EditSessionModalState extends ConsumerState<EditSessionModal> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.sessionName);
+    _expectedEndController = TextEditingController(text: widget.expectedEnd.toString());
     plants = TextEditingController(text: widget.plant);
     devices = TextEditingController(text: widget.device);
     _phRange = widget.phRange;
@@ -86,6 +88,7 @@ class _EditSessionModalState extends ConsumerState<EditSessionModal> {
   @override
   void dispose() {
     _nameController.dispose();
+    _expectedEndController.dispose();
     plants.dispose();
     devices.dispose();
     phMinController.dispose();
@@ -102,39 +105,7 @@ class _EditSessionModalState extends ConsumerState<EditSessionModal> {
   @override
   Widget build(BuildContext context) {
     final local = AppLocalizations.of(context)!;
-    final action = ref.watch(cropCycleControllerProvider.notifier).action;
-    ref.listen<AsyncValue<void>>(cropCycleControllerProvider, (previous, next) {
-      next.whenOrNull(
-        loading: () {
-          if (action == CropCycleAction.update) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => FancyLoadingDialog(title: local.updatingCropCycleSession),
-            );
-          }
-        },
-        error: (error, stackTrace) {
-          context.pop();
-          Toast().showErrorToast(context: context, title: 'Error', description: error.toString().replaceAll('Exception: ', ''));
-        },
-        data: (_) {
-          if (action == CropCycleAction.update) {
-            context.pop();
-            Toast().showSuccessToast(context: context, title: local.success, description: local.cropCycleUpdated);
-            EditSessionData sessionData = EditSessionData(
-              name: _nameController.text,
-              phMin: _phRange.start,
-              phMax: _phRange.end,
-              ppmMin: _ppmRange.start,
-              ppmMax: _ppmRange.end,
-            );
-            widget.onSessionEdited(sessionData);
-            context.pop();
-          }
-        },
-      );
-    });
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -238,6 +209,28 @@ class _EditSessionModalState extends ConsumerState<EditSessionModal> {
                             obscureText: false,
                             readOnly: true,
                             suffixIcon: const Icon(Icons.keyboard_arrow_down_outlined),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormFieldComponent(
+                            label: '',
+                            controller: _expectedEndController,
+                            hintText: local.expectedHarvestDuration,
+                            obscureText: false,
+                            readOnly: true,
+                            suffixIcon: Padding(
+                              padding: EdgeInsets.only(right: 14.w),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    local.days,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.copyWith(color: ColorValues.neutral500, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),

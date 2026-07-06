@@ -800,4 +800,23 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get harvestedOn => 'Diakhiri pada';
+
+  @override
+  String get expectedHarvestDuration => 'Perkiraan durasi panen';
+
+  @override
+  String get days => 'Hari';
+
+  @override
+  String get pleaseSelectDevice => 'Mohon pilih perangkat';
+
+  @override
+  String get deviceHasActiveSession =>
+      'Perangkat sudah ada sesi yang berjalan!';
+
+  @override
+  String get deviceIsOffline => 'Perangkat sedang offline!';
+
+  @override
+  String get initializingCalibration => 'Inisialisasi kalibrasi...';
 }
