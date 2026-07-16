@@ -33,38 +33,20 @@ class DeviceCard extends ConsumerStatefulWidget {
 }
 
 class _DeviceCardState extends ConsumerState<DeviceCard> {
-  // Tick tiap detik untuk countdown display saat CALIBRATING
-  Timer? _tickTimer;
-
   bool get _isCalibrating => widget.status == getDeviceStatusText(DeviceStatus.calibrating);
 
   @override
   void initState() {
     super.initState();
-    if (_isCalibrating) {
-      _tickTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
-      });
-    }
   }
 
   @override
   void didUpdateWidget(DeviceCard old) {
     super.didUpdateWidget(old);
-    // Mulai atau hentikan timer sesuai status terkini
-    if (_isCalibrating && _tickTimer == null) {
-      _tickTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
-      });
-    } else if (!_isCalibrating && _tickTimer != null) {
-      _tickTimer?.cancel();
-      _tickTimer = null;
-    }
   }
 
   @override
   void dispose() {
-    _tickTimer?.cancel();
     super.dispose();
   }
 
@@ -232,9 +214,11 @@ class _CalibrationProgressSectionState extends ConsumerState<_CalibrationProgres
           loading: () => const SizedBox(height: 52, child: Center(child: CircularProgressIndicator.adaptive())),
           error: (_, __) => _buildActionRequired(local),
           data: (session) {
-            if (session!.timer!.endsAt.isBefore(DateTime.now())) return _buildActionRequired(local);
+            final timer = session?.timer;
+            if (session == null || timer == null || timer.endsAt.isBefore(DateTime.now())) {
+              return _buildActionRequired(local);
+            }
 
-            final timer = session.timer;
             final currentStep = session.timer!.step;
             final stepLabel = _stepLabel(currentStep);
 

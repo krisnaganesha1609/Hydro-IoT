@@ -12,6 +12,8 @@ import 'package:hydro_iot/res/colors.dart';
 import 'package:hydro_iot/utils/local_notification_helper.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'utils/fcm_helper.dart';
+
 final LocalNotificationHelper localNotificationHelper = LocalNotificationHelper();
 
 // Must be a top-level function to handle background messages from FCM (because separate isolate)
@@ -26,11 +28,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (message.notification != null) {
     debugPrint('Message also contained a notification: ${message.notification}');
   }
-  localNotificationHelper.showNotification(
-    DateTime.now().millisecondsSinceEpoch % 100000,
-    message.notification?.title ?? 'Notification',
-    message.notification?.body ?? 'Some Notification Body',
-  );
 }
 
 Future<void> main() async {
@@ -45,5 +42,7 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: '.env');
   await initializeDateFormatting();
-  runApp(const ProviderScope(child: App()));
+  final container = ProviderContainer();
+  fcmProviderContainer = container; // Assign to global variable for FCM helper
+  runApp(UncontrolledProviderScope(container: container, child: const App()));
 }
