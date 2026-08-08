@@ -2,7 +2,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Storage {
   final FlutterSecureStorage _storage;
-  Storage({FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage();
+  Storage({FlutterSecureStorage? storage})
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(migrateWithBackup: true),
+            iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+          );
 
   static const _kAccessToken = 'ACCESS_TOKEN';
   static const _kRefreshToken = 'REFRESH_TOKEN';

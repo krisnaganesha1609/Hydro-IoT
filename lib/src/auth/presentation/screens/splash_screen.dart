@@ -15,6 +15,11 @@ const _kTextVer = Color(0xFF94A3B8);
 const _kRing1 = Color(0x2640916C); // green500 @ ~15%
 const _kRing2 = Color(0x1A1B4332); // green900 @ ~10%
 
+/// Batas waktu MUTLAK splash boleh hidup. Apapun yang terjadi di dalam
+/// (animasi lag, exception kelewat, font/asset gagal load, device lambat),
+/// splash WAJIB pindah ke landing sebelum durasi ini habis.
+const _kHardTimeout = Duration(seconds: 5);
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   static const String path = 'splash';
@@ -33,8 +38,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late final Animation<double> _ring1Scale, _ring1Opacity;
   late final Animation<double> _ring2Scale, _ring2Opacity;
 
-  // 3. Shadow pulse (continuous)
+  // 3. Shadow pulse (continuous) — disederhanakan jadi opacity-only,
+  //    blur/spread FIXED (jauh lebih murah buat GPU low/mid-end).
   late final AnimationController _shadowCtrl;
+  late final Animation<double> _shadowOpacity;
 
   // 4. Text + progress bar enter
   late final AnimationController _textEnterCtrl;
@@ -51,6 +58,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   // 7. Logo exit (scale up + fade)
   late final AnimationController _logoExitCtrl;
   late final Animation<double> _logoExitScale, _logoExitOpacity;
+
+  bool _hasNavigated = false;
+  bool _imageLoadFailed = false;
+  Timer? _hardTimeoutTimer;
 
   @override
   void initState() {
@@ -87,6 +98,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
 
     _shadowCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat(reverse: true);
+    _shadowOpacity = Tween<double>(begin: 0.10, end: 0.24).animate(CurvedAnimation(parent: _shadowCtrl, curve: Curves.easeInOut));
 
     _textEnterCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 480));
     _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _textEnterCtrl, curve: Curves.easeOut));
@@ -109,47 +121,77 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       ),
     );
 
+    // Failsafe mutlak: kalau _runSequence() gagal navigasi karena alasan
+    // apapun, timer ini yang eksekusi. Ini jaring pengaman terakhir.
+    _hardTimeoutTimer = Timer(_kHardTimeout, () {
+      debugPrint('[SplashScreen] Hard timeout tercapai — force navigate.');
+      _navigateOnce();
+    });
+
     _runSequence();
   }
 
   Future<void> _runSequence() async {
-    _enterCtrl.forward();
+    try {
+      _enterCtrl.forward();
 
-    await Future.delayed(const Duration(milliseconds: 120));
-    if (!mounted) return;
-    _ringCtrl.forward();
+      await Future.delayed(const Duration(milliseconds: 120));
+      if (!mounted) return;
+      _ringCtrl.forward();
 
-    await Future.delayed(const Duration(milliseconds: 680));
-    if (!mounted) return;
-    _textEnterCtrl.forward();
-    _progressCtrl.forward();
+      await Future.delayed(const Duration(milliseconds: 680));
+      if (!mounted) return;
+      _textEnterCtrl.forward();
+      _progressCtrl.forward();
 
-    // Sambil animasi jalan, cek session di background
-    final destination = await _resolveDestination();
+      await Future.delayed(const Duration(milliseconds: 2500));
+      if (!mounted) return;
 
-    await Future.delayed(const Duration(milliseconds: 2500));
-    if (!mounted) return;
+      _exitEnvCtrl.forward();
+      await Future.delayed(const Duration(milliseconds: 180));
+      if (!mounted) return;
 
-    _exitEnvCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 180));
-    if (!mounted) return;
-
-    await _logoExitCtrl.forward();
-    if (!mounted) return;
-
-    // GoRouter — context.go menggantikan pushReplacement.
-    // Curtain transition (white slide up) didefinisikan via CustomTransitionPage
-    // di routes.dart. Lihat snippet di bawah file ini.
-    context.go(destination);
+      await _logoExitCtrl.forward();
+    } catch (e, st) {
+      // Apapun yang meleset di tengah sequence animasi, jangan biarkan
+      // splash diam selamanya — log lalu tetap lanjut ke navigasi.
+      debugPrint('[SplashScreen] Sequence error (diabaikan, tetap navigasi): $e\n$st');
+    } finally {
+      _navigateOnce();
+    }
   }
 
-  /// Cek token + login state, return path tujuan
-  String _resolveDestination() {
-    return '/${LandingScreen.path}';
+  /// Satu-satunya jalur navigasi keluar dari splash. Tujuan cuma satu:
+  /// landing screen — tidak ada lagi logic "resolve destination" async
+  /// (cek token/session dsb). Kalau nanti butuh redirect berdasarkan
+  /// session, taruh itu di GoRouter redirect atau di LandingScreen,
+  /// BUKAN di splash. Splash harus tetap ringan dan predictable.
+  ///
+  /// Dilindungi flag `_hasNavigated` supaya tidak mungkin context.go()
+  /// terpanggil dua kali (misal race antara _runSequence selesai normal
+  /// vs hard timeout menembak di waktu yang hampir bersamaan).
+  void _navigateOnce() {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+    _hardTimeoutTimer?.cancel();
+    context.go('/${LandingScreen.path}');
+  }
+
+  /// Style Poppins yang aman: kalau google_fonts gagal resolve (network
+  /// diblokir, cache kosong, dsb) jangan biarkan exception itu bikin
+  /// subtree Text ini gagal render — fallback ke system font.
+  TextStyle _safePoppins({required double fontSize, required FontWeight fontWeight, required Color color, double? letterSpacing, double? height}) {
+    try {
+      return GoogleFonts.poppins(fontSize: fontSize, fontWeight: fontWeight, color: color, letterSpacing: letterSpacing, height: height);
+    } catch (e) {
+      debugPrint('[SplashScreen] GoogleFonts.poppins gagal, fallback system font: $e');
+      return TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color, letterSpacing: letterSpacing, height: height);
+    }
   }
 
   @override
   void dispose() {
+    _hardTimeoutTimer?.cancel();
     _enterCtrl.dispose();
     _ringCtrl.dispose();
     _shadowCtrl.dispose();
@@ -169,24 +211,26 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       body: Stack(
         children: [
           // ── 1. Dot pattern background ─────────────────────────────────
-          const _DotGrid(),
+          const RepaintBoundary(child: _DotGrid()),
 
           // ── 2. Accent arc kanan bawah ─────────────────────────────────
           Positioned(
             right: -size.width * 0.22,
             bottom: -size.width * 0.22,
-            child: AnimatedBuilder(
-              animation: _ringCtrl,
-              builder: (_, __) => Opacity(
-                opacity: (_ring2Opacity.value * _exitEnvOpacity.value) * 0.55,
-                child: Transform.scale(
-                  scale: _ring2Scale.value,
-                  child: Container(
-                    width: size.width * 0.82,
-                    height: size.width * 0.82,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: _kGreen300.withOpacity(0.28), width: 1.5),
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _ringCtrl,
+                builder: (_, __) => Opacity(
+                  opacity: (_ring2Opacity.value * _exitEnvOpacity.value) * 0.55,
+                  child: Transform.scale(
+                    scale: _ring2Scale.value,
+                    child: Container(
+                      width: size.width * 0.82,
+                      height: size.width * 0.82,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _kGreen300.withValues(alpha: 0.28), width: 1.5),
+                      ),
                     ),
                   ),
                 ),
@@ -198,18 +242,20 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           Positioned(
             left: -size.width * 0.28,
             top: -size.width * 0.28,
-            child: AnimatedBuilder(
-              animation: _ringCtrl,
-              builder: (_, __) => Opacity(
-                opacity: (_ring1Opacity.value * _exitEnvOpacity.value) * 0.4,
-                child: Transform.scale(
-                  scale: _ring1Scale.value,
-                  child: Container(
-                    width: size.width * 0.82,
-                    height: size.width * 0.82,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: _kGreen900.withOpacity(0.18), width: 1.5),
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _ringCtrl,
+                builder: (_, __) => Opacity(
+                  opacity: (_ring1Opacity.value * _exitEnvOpacity.value) * 0.4,
+                  child: Transform.scale(
+                    scale: _ring1Scale.value,
+                    child: Container(
+                      width: size.width * 0.82,
+                      height: size.width * 0.82,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _kGreen900.withValues(alpha: 0.18), width: 1.5),
+                      ),
                     ),
                   ),
                 ),
@@ -218,28 +264,32 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           ),
 
           // ── 4. Orbit ring 1 (inner) ───────────────────────────────────
-          AnimatedBuilder(
-            animation: Listenable.merge([_ringCtrl, _exitEnvCtrl]),
-            builder: (_, __) => Center(
-              child: Opacity(
-                opacity: _ring1Opacity.value * _exitEnvOpacity.value,
-                child: Transform.scale(
-                  scale: _ring1Scale.value,
-                  child: _OrbitRing(diameter: size.width * 0.60, color: _kRing1, strokeWidth: 1.2),
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_ringCtrl, _exitEnvCtrl]),
+              builder: (_, __) => Center(
+                child: Opacity(
+                  opacity: _ring1Opacity.value * _exitEnvOpacity.value,
+                  child: Transform.scale(
+                    scale: _ring1Scale.value,
+                    child: _OrbitRing(diameter: size.width * 0.60, color: _kRing1, strokeWidth: 1.2),
+                  ),
                 ),
               ),
             ),
           ),
 
           // ── 5. Orbit ring 2 (outer) ───────────────────────────────────
-          AnimatedBuilder(
-            animation: Listenable.merge([_ringCtrl, _exitEnvCtrl]),
-            builder: (_, __) => Center(
-              child: Opacity(
-                opacity: _ring2Opacity.value * _exitEnvOpacity.value,
-                child: Transform.scale(
-                  scale: _ring2Scale.value,
-                  child: _OrbitRing(diameter: size.width * 0.84, color: _kRing2, strokeWidth: 1.0),
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_ringCtrl, _exitEnvCtrl]),
+              builder: (_, __) => Center(
+                child: Opacity(
+                  opacity: _ring2Opacity.value * _exitEnvOpacity.value,
+                  child: Transform.scale(
+                    scale: _ring2Scale.value,
+                    child: _OrbitRing(diameter: size.width * 0.84, color: _kRing2, strokeWidth: 1.0),
+                  ),
                 ),
               ),
             ),
@@ -247,27 +297,40 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
           // ── 6. Logo ───────────────────────────────────────────────────
           Center(
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_enterCtrl, _logoExitCtrl, _shadowCtrl]),
-              builder: (_, __) => Transform.scale(
-                scale: _logoEnterScale.value * _logoExitScale.value,
-                child: Opacity(
-                  opacity: _logoExitOpacity.value,
-                  child: Container(
-                    width: 138,
-                    height: 138,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      // Shadow pulse menggunakan _shadowCtrl
-                      boxShadow: [
-                        BoxShadow(
-                          color: _kGreen500.withOpacity(0.10 + _shadowCtrl.value * 0.14),
-                          blurRadius: 24 + _shadowCtrl.value * 16,
-                          spreadRadius: 2 + _shadowCtrl.value * 4,
-                        ),
-                      ],
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_enterCtrl, _logoExitCtrl, _shadowCtrl]),
+                builder: (_, __) => Transform.scale(
+                  scale: _logoEnterScale.value * _logoExitScale.value,
+                  child: Opacity(
+                    opacity: _logoExitOpacity.value,
+                    child: Container(
+                      width: 138,
+                      height: 138,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: _kGreen500.withValues(alpha: _shadowOpacity.value), blurRadius: 28, spreadRadius: 3)],
+                      ),
+                      child: ClipOval(
+                        child: _imageLoadFailed
+                            ? const _LogoFallback()
+                            : Image.asset(
+                                'assets/img/splash.png',
+                                width: 138,
+                                height: 138,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stack) {
+                                  debugPrint('[SplashScreen] Logo asset gagal load: $error');
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (mounted && !_imageLoadFailed) {
+                                      setState(() => _imageLoadFailed = true);
+                                    }
+                                  });
+                                  return const _LogoFallback();
+                                },
+                              ),
+                      ),
                     ),
-                    child: ClipOval(child: Image.asset('assets/img/splash.png', width: 138, height: 138, fit: BoxFit.contain)),
                   ),
                 ),
               ),
@@ -295,7 +358,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     Text(
                       AppStrings.appName,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700, color: _kGreen900, letterSpacing: 1.6, height: 1.3),
+                      style: _safePoppins(fontSize: 22, fontWeight: FontWeight.w700, color: _kGreen900, letterSpacing: 1.6, height: 1.3),
                     ),
                     const SizedBox(height: 10),
 
@@ -305,7 +368,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       height: 2,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(1),
-                        gradient: LinearGradient(colors: [Colors.transparent, _kGreen500.withOpacity(0.75), Colors.transparent]),
+                        gradient: LinearGradient(colors: [Colors.transparent, _kGreen500.withValues(alpha: 0.75), Colors.transparent]),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -314,7 +377,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     Text(
                       AppStrings.appDescription,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w400, color: _kTextSub, letterSpacing: 0.2, height: 1.7),
+                      style: _safePoppins(fontSize: 13, fontWeight: FontWeight.w400, color: _kTextSub, letterSpacing: 0.2, height: 1.7),
                     ),
                     const SizedBox(height: 26),
 
@@ -328,8 +391,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                           animation: _progressCtrl,
                           builder: (_, __) => LinearProgressIndicator(
                             value: _progressCtrl.value,
-                            backgroundColor: _kGreen500.withOpacity(0.08),
-                            valueColor: AlwaysStoppedAnimation<Color>(_kGreen500.withOpacity(0.65)),
+                            backgroundColor: _kGreen500.withValues(alpha: 0.08),
+                            valueColor: AlwaysStoppedAnimation<Color>(_kGreen500.withValues(alpha: 0.65)),
                           ),
                         ),
                       ),
@@ -339,7 +402,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     // Version
                     Text(
                       'Versi ${AppStrings.appVersion}',
-                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w300, color: _kTextVer, letterSpacing: 1.2),
+                      style: _safePoppins(fontSize: 11, fontWeight: FontWeight.w300, color: _kTextVer, letterSpacing: 1.2),
                     ),
                   ],
                 ),
@@ -348,6 +411,22 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           ),
         ],
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  LOGO FALLBACK (dipakai kalau assets/img/splash.png gagal di-load)
+// ═══════════════════════════════════════════════════════════════════════════════
+class _LogoFallback extends StatelessWidget {
+  const _LogoFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _kGreen300.withValues(alpha: 0.15),
+      alignment: Alignment.center,
+      child: const Icon(Icons.eco_rounded, size: 64, color: _kGreen500),
     );
   }
 }
@@ -393,7 +472,7 @@ class _DotGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF40916C).withOpacity(0.05)
+      ..color = const Color(0xFF40916C).withValues(alpha: 0.05)
       ..style = PaintingStyle.fill;
 
     const spacing = 28.0;

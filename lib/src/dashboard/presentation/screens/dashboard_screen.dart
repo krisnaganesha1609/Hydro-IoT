@@ -206,6 +206,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(height: 20),
                       _buildContent(cropCycleState, local),
                       SizedBox(height: heightQuery(context) * 0.15),
+                      TextButton(onPressed: () => throw Exception(), child: const Text("Throw Test Exception")),
+                      SizedBox(height: heightQuery(context) * 0.15),
                     ],
                   ),
                 ),
